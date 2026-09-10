@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# Carpetas de salida generadas por el script
+*_csv/
