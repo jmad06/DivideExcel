@@ -182,13 +182,35 @@ def procesar(ruta):
     print(resumen)
 
 
+def excels_en_carpeta(carpeta):
+    """Busca archivos Excel soportados dentro de una carpeta (recursivo), ignorando los de bloqueo (~$)."""
+    return sorted(
+        p
+        for p in carpeta.rglob("*")
+        if p.is_file() and p.suffix.lower() in EXTENSIONES and not p.name.startswith("~$")
+    )
+
+
 def main():
-    rutas = [Path(a) for a in sys.argv[1:]]
-    if not rutas:
-        print("Arrastra uno o varios archivos Excel sobre el .bat.")
-    else:
-        for ruta in rutas:
-            procesar(ruta)
+    argumentos = [Path(a) for a in sys.argv[1:]]
+    if not argumentos:
+        print("Arrastra uno o varios archivos Excel (o carpetas) sobre el .bat.")
+        print("\nHecho.")
+        input("Pulsa Enter para cerrar...")
+        return
+
+    rutas = []
+    for arg in argumentos:
+        if arg.is_dir():
+            encontrados = excels_en_carpeta(arg)
+            if not encontrados:
+                print(f"[!] {arg}: no contiene archivos Excel soportados")
+            rutas.extend(encontrados)
+        else:
+            rutas.append(arg)
+
+    for ruta in rutas:
+        procesar(ruta)
     print("\nHecho.")
     input("Pulsa Enter para cerrar...")
 

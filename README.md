@@ -4,8 +4,10 @@ Divide un archivo Excel (`.xlsx`, `.xlsm`, `.xltx`, `.xltm`) en un CSV independi
 
 ## Uso
 
-1. Arrastra uno o varios archivos Excel sobre `DivideExcel.bat`.
+1. Arrastra uno o varios archivos Excel (o carpetas) sobre `DivideExcel.bat`.
 2. Por cada archivo se crea una carpeta `<archivo>_csv` junto al original, con un CSV por hoja.
+
+Si arrastras una carpeta, se buscan (de forma recursiva) todos los Excel soportados dentro de ella, ignorando los archivos de bloqueo temporales de Excel (`~$archivo.xlsx`).
 
 También se puede ejecutar directamente desde la terminal:
 
