@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal
 
-set "SCRIPT=%~dp0dividir_hojas.py"
+set "SCRIPT=%~dp0DivideExcel.py"
 
 if "%~1"=="" (
     echo Arrastra uno o varios archivos .xlsx sobre este .bat

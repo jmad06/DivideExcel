@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Divide un archivo Excel en un CSV por cada hoja.
-Uso: arrastrar uno o varios .xlsx / .xlsm sobre dividir_hojas.bat
+Uso: arrastrar uno o varios .xlsx / .xlsm sobre DivideExcel.bat
 """
 
 import csv

@@ -1,16 +1,16 @@
-# DividirExcelEnCSV
+# DivideExcel
 
 Divide un archivo Excel (`.xlsx`, `.xlsm`, `.xltx`, `.xltm`) en un CSV independiente por cada hoja, arrastrando el archivo sobre un `.bat`.
 
 ## Uso
 
-1. Arrastra uno o varios archivos Excel sobre `dividir_hojas.bat`.
+1. Arrastra uno o varios archivos Excel sobre `DivideExcel.bat`.
 2. Por cada archivo se crea una carpeta `<archivo>_csv` junto al original, con un CSV por hoja.
 
 También se puede ejecutar directamente desde la terminal:
 
 ```bash
-python dividir_hojas.py archivo1.xlsx archivo2.xlsm
+python DivideExcel.py archivo1.xlsx archivo2.xlsm
 ```
 
 ## Requisitos
