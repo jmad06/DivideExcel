@@ -1,0 +1,11 @@
+{
+    "delimitador": ";",
+    "codificacion": "utf-8-sig",
+    "saltar_hojas_vacias": true,
+    "extensiones": [
+        ".xlsx",
+        ".xlsm",
+        ".xltx",
+        ".xltm"
+    ]
+}
