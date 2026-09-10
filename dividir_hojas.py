@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""
+Divide un archivo Excel en un CSV por cada hoja.
+Uso: arrastrar uno o varios .xlsx / .xlsm sobre dividir_hojas.bat
+"""
+
+import csv
+import re
+import sys
+from datetime import date, datetime, time
+from pathlib import Path
+
+try:
+    from openpyxl import load_workbook
+except ImportError:
+    print("Falta la libreria openpyxl. Instalala con:  pip install openpyxl")
+    input("Pulsa Enter para salir...")
+    sys.exit(1)
+
+# ---- Configuracion ----
+DELIMITADOR = ";"        # ";" para abrir directo en Excel (España). "," para pandas / Power BI.
+CODIFICACION = "utf-8-sig"   # utf-8-sig conserva tildes y ñ al abrir en Excel
+SALTAR_HOJAS_VACIAS = True
+EXTENSIONES = {".xlsx", ".xlsm", ".xltx", ".xltm"}
+# -----------------------
+
+
+def nombre_seguro(nombre):
+    """Convierte el nombre de hoja en un nombre de archivo valido en Windows."""
+    limpio = re.sub(r'[\\/:*?"<>|]', "_", nombre).strip().rstrip(".")
+    return limpio or "hoja_sin_nombre"
+
+
+def formatear(valor):
+    if valor is None:
+        return ""
+    if isinstance(valor, bool):
+        return "TRUE" if valor else "FALSE"
+    if isinstance(valor, datetime):
+        if (valor.hour, valor.minute, valor.second) == (0, 0, 0):
+            return valor.strftime("%Y-%m-%d")
+        return valor.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(valor, date):
+        return valor.strftime("%Y-%m-%d")
+    if isinstance(valor, time):
+        return valor.strftime("%H:%M:%S")
+    return valor
+
+
+def filas_utiles(hoja):
+    """Devuelve las filas sin filas ni columnas vacias al final."""
+    filas = []
+    for fila in hoja.iter_rows(values_only=True):
+        valores = [formatear(v) for v in fila]
+        while valores and valores[-1] == "":
+            valores.pop()
+        filas.append(valores)
+    while filas and not filas[-1]:
+        filas.pop()
+    return filas
+
+
+def procesar(ruta):
+    if not ruta.exists():
+        print(f"  [!] No existe: {ruta}")
+        return
+    if ruta.suffix.lower() not in EXTENSIONES:
+        print(f"  [!] Extension no soportada, se ignora: {ruta.name}")
+        return
+
+    print(f"\n> {ruta.name}")
+    try:
+        libro = load_workbook(ruta, read_only=True, data_only=True)
+    except Exception as e:
+        print(f"  [!] No se pudo abrir: {e}")
+        return
+
+    destino = ruta.parent / f"{ruta.stem}_csv"
+    destino.mkdir(exist_ok=True)
+
+    usados = set()
+    generados = 0
+
+    for hoja in libro.worksheets:
+        filas = filas_utiles(hoja)
+        if not filas and SALTAR_HOJAS_VACIAS:
+            print(f"  - {hoja.title}: vacia, se omite")
+            continue
+
+        base = nombre_seguro(hoja.title)
+        nombre = base
+        n = 2
+        while nombre.lower() in usados:
+            nombre = f"{base}_{n}"
+            n += 1
+        usados.add(nombre.lower())
+
+        ancho = max((len(f) for f in filas), default=0)
+        salida = destino / f"{nombre}.csv"
+
+        with open(salida, "w", newline="", encoding=CODIFICACION) as f:
+            escritor = csv.writer(f, delimiter=DELIMITADOR)
+            for fila in filas:
+                escritor.writerow(fila + [""] * (ancho - len(fila)))
+
+        print(f"  - {hoja.title}: {len(filas)} filas x {ancho} col -> {salida.name}")
+        generados += 1
+
+    libro.close()
+    print(f"  {generados} CSV en: {destino}")
+
+
+def main():
+    rutas = [Path(a) for a in sys.argv[1:]]
+    if not rutas:
+        print("Arrastra uno o varios archivos Excel sobre el .bat.")
+    else:
+        for ruta in rutas:
+            procesar(ruta)
+    print("\nHecho.")
+    input("Pulsa Enter para cerrar...")
+
+
+if __name__ == "__main__":
+    main()
