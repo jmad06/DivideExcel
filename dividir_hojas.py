@@ -5,6 +5,7 @@ Uso: arrastrar uno o varios .xlsx / .xlsm sobre dividir_hojas.bat
 """
 
 import csv
+import json
 import re
 import sys
 from datetime import date, datetime, time
@@ -17,11 +18,44 @@ except ImportError:
     input("Pulsa Enter para salir...")
     sys.exit(1)
 
-# ---- Configuracion ----
-DELIMITADOR = ";"        # ";" para abrir directo en Excel (España). "," para pandas / Power BI.
-CODIFICACION = "utf-8-sig"   # utf-8-sig conserva tildes y ñ al abrir en Excel
-SALTAR_HOJAS_VACIAS = True
-EXTENSIONES = {".xlsx", ".xlsm", ".xltx", ".xltm"}
+# ---- Configuracion (ver config.json junto a este script) ----
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+
+CONFIG_POR_DEFECTO = {
+    "delimitador": ";",        # ";" para abrir directo en Excel (España). "," para pandas / Power BI.
+    "codificacion": "utf-8-sig",   # utf-8-sig conserva tildes y ñ al abrir en Excel
+    "saltar_hojas_vacias": True,
+    "extensiones": [".xlsx", ".xlsm", ".xltx", ".xltm"],
+}
+
+
+def cargar_config():
+    """Lee config.json junto al script. Si falta o esta incompleto, usa/crea los valores por defecto."""
+    if not CONFIG_PATH.exists():
+        try:
+            CONFIG_PATH.write_text(
+                json.dumps(CONFIG_POR_DEFECTO, indent=4, ensure_ascii=False), encoding="utf-8"
+            )
+        except OSError as e:
+            print(f"  [!] No se pudo crear config.json, se usan valores por defecto: {e}")
+        return dict(CONFIG_POR_DEFECTO)
+
+    try:
+        datos = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"  [!] config.json invalido, se usan valores por defecto: {e}")
+        return dict(CONFIG_POR_DEFECTO)
+
+    config = dict(CONFIG_POR_DEFECTO)
+    config.update({k: v for k, v in datos.items() if k in CONFIG_POR_DEFECTO})
+    return config
+
+
+CONFIG = cargar_config()
+DELIMITADOR = CONFIG["delimitador"]
+CODIFICACION = CONFIG["codificacion"]
+SALTAR_HOJAS_VACIAS = CONFIG["saltar_hojas_vacias"]
+EXTENSIONES = set(CONFIG["extensiones"])
 # -----------------------
 
 
