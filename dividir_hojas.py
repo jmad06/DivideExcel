@@ -60,6 +60,18 @@ def filas_utiles(hoja):
     return filas
 
 
+def contar_formulas_sin_resolver(hoja_formulas, hoja_valores):
+    """Cuenta celdas con formula cuyo valor calculado no esta disponible (None)."""
+    total = 0
+    for fila_f, fila_v in zip(
+        hoja_formulas.iter_rows(values_only=True), hoja_valores.iter_rows(values_only=True)
+    ):
+        for vf, vv in zip(fila_f, fila_v):
+            if isinstance(vf, str) and vf.startswith("=") and vv is None:
+                total += 1
+    return total
+
+
 def procesar(ruta):
     if not ruta.exists():
         print(f"  [!] No existe: {ruta}")
@@ -75,39 +87,65 @@ def procesar(ruta):
         print(f"  [!] No se pudo abrir: {e}")
         return
 
+    try:
+        libro_formulas = load_workbook(ruta, read_only=True, data_only=False)
+    except Exception:
+        libro_formulas = None
+
     destino = ruta.parent / f"{ruta.stem}_csv"
     destino.mkdir(exist_ok=True)
 
     usados = set()
     generados = 0
+    omitidas = 0
 
-    for hoja in libro.worksheets:
-        filas = filas_utiles(hoja)
-        if not filas and SALTAR_HOJAS_VACIAS:
-            print(f"  - {hoja.title}: vacia, se omite")
+    hojas_formulas = libro_formulas.worksheets if libro_formulas else []
+
+    for hoja, hoja_f in zip(libro.worksheets, hojas_formulas or [None] * len(libro.worksheets)):
+        try:
+            filas = filas_utiles(hoja)
+            if not filas and SALTAR_HOJAS_VACIAS:
+                print(f"  - {hoja.title}: vacia, se omite")
+                continue
+
+            if hoja_f is not None:
+                sin_resolver = contar_formulas_sin_resolver(hoja_f, hoja)
+                if sin_resolver:
+                    print(
+                        f"  [!] {hoja.title}: {sin_resolver} formula(s) sin valor calculado "
+                        "(se exportan vacias; abre y guarda el Excel para recalcularlas)"
+                    )
+
+            base = nombre_seguro(hoja.title)
+            nombre = base
+            n = 2
+            while nombre.lower() in usados:
+                nombre = f"{base}_{n}"
+                n += 1
+            usados.add(nombre.lower())
+
+            ancho = max((len(f) for f in filas), default=0)
+            salida = destino / f"{nombre}.csv"
+
+            with open(salida, "w", newline="", encoding=CODIFICACION) as f:
+                escritor = csv.writer(f, delimiter=DELIMITADOR)
+                for fila in filas:
+                    escritor.writerow(fila + [""] * (ancho - len(fila)))
+
+            print(f"  - {hoja.title}: {len(filas)} filas x {ancho} col -> {salida.name}")
+            generados += 1
+        except Exception as e:
+            omitidas += 1
+            print(f"  [!] {hoja.title}: error al procesar, se omite ({e})")
             continue
 
-        base = nombre_seguro(hoja.title)
-        nombre = base
-        n = 2
-        while nombre.lower() in usados:
-            nombre = f"{base}_{n}"
-            n += 1
-        usados.add(nombre.lower())
-
-        ancho = max((len(f) for f in filas), default=0)
-        salida = destino / f"{nombre}.csv"
-
-        with open(salida, "w", newline="", encoding=CODIFICACION) as f:
-            escritor = csv.writer(f, delimiter=DELIMITADOR)
-            for fila in filas:
-                escritor.writerow(fila + [""] * (ancho - len(fila)))
-
-        print(f"  - {hoja.title}: {len(filas)} filas x {ancho} col -> {salida.name}")
-        generados += 1
-
     libro.close()
-    print(f"  {generados} CSV en: {destino}")
+    if libro_formulas:
+        libro_formulas.close()
+    resumen = f"  {generados} CSV en: {destino}"
+    if omitidas:
+        resumen += f"  ({omitidas} hoja(s) omitida(s) por error)"
+    print(resumen)
 
 
 def main():
