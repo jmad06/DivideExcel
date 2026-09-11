@@ -42,6 +42,17 @@ Los ajustes se leen de [`config.json`](config.json), en la misma carpeta que el 
 - Si una hoja falla al procesarse, se omite con un aviso y el script continúa con el resto.
 - Si una celda tiene fórmula pero no tiene valor calculado en caché (el libro no se guardó recalculado), se avisa por consola y la celda se exporta vacía.
 
+## Estructura del repositorio
+
+```
+DivideExcel/
+├── DivideExcel.py    # Script principal
+├── DivideExcel.bat   # Lanzador: arrastra archivos/carpetas sobre este .bat
+├── config.json       # Configuracion editable (delimitador, codificacion, etc.)
+├── README.md
+└── LICENSE
+```
+
 ## Licencia
 
-Uso personal / interno.
+[MIT](LICENSE).
